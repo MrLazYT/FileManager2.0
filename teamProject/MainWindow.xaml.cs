@@ -8,7 +8,6 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Shapes;
 
 namespace teamProject
 {
@@ -19,7 +18,7 @@ namespace teamProject
         private string _soursDirectory;
         private string homeDirectory;
         private bool isMove = false;
-        List<CancellationTokenSource> tokens;
+        List<CancelTaskToken> tokens;
 
         public MainWindow()
         {
@@ -29,7 +28,7 @@ namespace teamProject
             openedDirectory = null!;
             _soursDirectory = null!;
             homeDirectory = null!;
-            tokens = new List<CancellationTokenSource>();
+            tokens = new List<CancelTaskToken>();
 
             GetDefaultPath();
             UpdateItems();
@@ -78,11 +77,6 @@ namespace teamProject
         {
             if (e.ClickCount == 2)
             {
-                foreach (CancellationTokenSource tokenSource in tokens)
-                {
-                    tokenSource.Cancel();
-                }
-
                 DItem dItem = (DItem)ItemsListBox.SelectedItem;
 
                 if (dItem is DDrive)
@@ -198,7 +192,7 @@ namespace teamProject
             {
                 string[] directories = Directory.GetDirectories(model.Path);
                 string[] files = Directory.GetFiles(model.Path);
-                
+
                 await UpdateItemsByTypeAsync(directories);
                 await UpdateItemsByTypeAsync(files);
 
@@ -292,7 +286,10 @@ namespace teamProject
             {
                 foreach (DItem dItem in model.Items)
                 {
-                    UpdateItemSize(dItem);
+                    CancelTaskToken token = new CancelTaskToken();
+                    tokens.Add(token);
+
+                    UpdateItemSize(dItem, token);
                 }
             }
             catch (InvalidOperationException) { }
@@ -302,7 +299,7 @@ namespace teamProject
             }
         }
 
-        private async void UpdateItemSize(DItem dItem)
+        private async void UpdateItemSize(DItem dItem, CancelTaskToken token)
         {
             if (dItem is DDirectory)
             {
@@ -318,59 +315,62 @@ namespace teamProject
                 }
                 else
                 {
-                    CancellationTokenSource tokenSource = new CancellationTokenSource();
-                    tokens.Add(tokenSource);
-
-                    long itemSize = await GetItemsSizeAsync(dItem, tokenSource.Token);
+                    long itemSize = await GetItemsSizeAsync(dItem, token);
                     dItem.UpdateItemSize(itemSize);
                 }
             }
         }
 
-        private Task<long> GetItemsSizeAsync(DItem dItem, CancellationToken token)
+        private Task<long> GetItemsSizeAsync(DItem dItem, CancelTaskToken token)
         {
             return Task.Run(async () =>
             {
-                if (token.IsCancellationRequested)
+                long size = 0;
+
+                while (!token.IsCancelRequested())
+                {
+                    try
+                    {
+                        size = GetItemsSizeFast(dItem, token);
+                    }
+                    catch
+                    {
+                        size = await GetItemsSizeLong(dItem.Path);
+                    }
+
+                    if (!token.IsCancelRequested())
+                    {
+                        token.Stop();
+                    }
+                }
+
+                if (!token.IsCompleted())
                 {
                     return 0;
                 }
-
-                long size = 0;
-
-                try
+                else
                 {
-                    size = GetItemsSizeFast(dItem);
-                }
-                catch
-                {
-                    size = await GetItemsSizeLong(dItem.Path, token);
+                    UpdateDirectorySize(size);
+
+                    return size;
                 }
 
-                return size;
             });
         }
 
-        private long GetItemsSizeFast(DItem dItem)
+        private long GetItemsSizeFast(DItem dItem, CancelTaskToken token)
         {
             DirectoryInfo dirInfo = new DirectoryInfo(dItem.Path);
             long size = dirInfo.EnumerateFiles("*", SearchOption.AllDirectories).Sum(file => file.Length);
 
-            UpdateDirectorySize(size);
-
             return size;
         }
 
-        private async Task<long> GetItemsSizeLong(string curDirectoryPath, CancellationToken token)
+        private async Task<long> GetItemsSizeLong(string curDirectoryPath)
         {
             long size = 0;
             string[] directories = new string[] { };
             string[] files = new string[] { };
-
-            if (token.IsCancellationRequested)
-            {
-                return 0;
-            }
 
             try
             {
@@ -384,25 +384,13 @@ namespace teamProject
 
             foreach (string directoryPath in directories)
             {
-                size += await GetItemsSizeLong(directoryPath, token);
-
-                if (token.IsCancellationRequested)
-                {
-                    return 0;
-                }
+                size += await GetItemsSizeLong(directoryPath);
             }
 
             foreach (string filePath in files)
             {
-                if (token.IsCancellationRequested)
-                {
-                    return 0;
-                }
-
                 size += new FileInfo(filePath).Length;
             }
-
-            UpdateDirectorySize(size);
 
             return size;
         }
@@ -513,6 +501,7 @@ namespace teamProject
                 try
                 {
                     string uniqueFileName = GetUniqueFileName(saveFileDialog.FileName);
+
                     if (saveFileDialog.FilterIndex != 3)
                     {
                         using (File.Create(uniqueFileName)) { }
@@ -826,8 +815,8 @@ namespace teamProject
         private void Mov_Click(object sender, RoutedEventArgs e)
         {
             isMove = true;
+
             Copy_Click(sender, e);
-            // код Семена || P.S. Вже не Семена
         }
 
         private void Update_Click(object sender, RoutedEventArgs e)
@@ -879,11 +868,6 @@ namespace teamProject
         {
             if (e.Key == Key.Enter)
             {
-                foreach (CancellationTokenSource tokenSource in tokens)
-                {
-                    tokenSource.Cancel();
-                }
-
                 try
                 {
                     model.Path = PathTextBox.Text;
@@ -904,6 +888,12 @@ namespace teamProject
 
         private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
+            foreach (CancelTaskToken token in tokens)
+            {
+                token.Cancel();
+            }
+
+            tokens.Clear();
         }
 
         private void FolderListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -989,7 +979,7 @@ namespace teamProject
             });
             await UpdateItemsByTypeAsync(sortedItems.ToArray());
         }
-        
+
         private async void SortDate(string rootPath)
         {
             List<DItem> sortedItems = new List<DItem>();
@@ -1014,7 +1004,7 @@ namespace teamProject
                         })
                         .OrderBy(item => item.Date);
 
-                     sortedItems.AddRange(items);
+                    sortedItems.AddRange(items);
                     Dispatcher.Invoke(() =>
                     {
                         model.ClearItems();
@@ -1030,7 +1020,7 @@ namespace teamProject
                 }
             });
 
-           
+
         }
         private async void SortDateDesc(string rootPath)
         {
@@ -1071,7 +1061,7 @@ namespace teamProject
                     Debug.WriteLine($"Неможливо доступитися до {rootPath}: {ex.Message}");
                 }
             });
-           
+
         }
         private async void SortSize(string rootPath)
         {
@@ -1112,8 +1102,8 @@ namespace teamProject
                     Debug.WriteLine($"Неможливо доступитися до {rootPath}: {ex.Message}");
                 }
             });
-          
-           
+
+
         }
         private async void SortSizeDesc(string rootPath)
         {
@@ -1154,7 +1144,7 @@ namespace teamProject
                     Debug.WriteLine($"Неможливо доступитися до {rootPath}: {ex.Message}");
                 }
             });
-            
+
         }
         private void Sort_btn(object sender, RoutedEventArgs e)
         {
@@ -1165,9 +1155,9 @@ namespace teamProject
                 SortButton.ContextMenu.IsOpen = true;
             }
 
-            
+
         }
-       
+
         private void SortFromA(object sender, RoutedEventArgs e)
         {
             model.ClearItems();
@@ -1516,7 +1506,6 @@ namespace teamProject
 
         public DDrive(DriveInfo driveInfo)
         {
-            Name = $"Локальний диск ({driveInfo.Name.Substring(0, driveInfo.Name.Length - 1)})";
             Path = driveInfo.Name;
             TotalSpace = driveInfo.TotalSize;
             FreeSpace = driveInfo.AvailableFreeSpace;
@@ -1528,7 +1517,21 @@ namespace teamProject
             TotalSpaceString = UpdateSize(TotalSpace);
             FreeSpaceString = UpdateSize(FreeSpace);
             Date = $"{FreeSpaceString} вільно з {TotalSpaceString}";
-            IconPath = "Assets/hdd.png";
+
+            InitializeDiskVisualComponents(driveInfo);
+        }
+
+        public void InitializeDiskVisualComponents(DriveInfo driveInfo)
+        {
+            if (driveInfo.DriveType == DriveType.Fixed)
+            {
+                Name = $"Локальний диск ({driveInfo.Name.Substring(0, driveInfo.Name.Length - 1)})";
+                IconPath = "Assets/hdd.png";
+            }
+            else
+            {
+                Name = $"Невідомий диск ({driveInfo.Name.Substring(0, driveInfo.Name.Length - 1)})";
+            }
         }
     }
 
