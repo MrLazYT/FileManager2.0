@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -16,9 +17,9 @@ namespace teamProject
         private Model model;
         private string openedDirectory;
         private string _soursDirectory;
-        private string homeDirectory;
         private bool isMove = false;
         List<CancelTaskToken> tokens;
+        private string fName = Directory.GetCurrentDirectory() + @"\save.dat";
 
         public MainWindow()
         {
@@ -27,19 +28,59 @@ namespace teamProject
             this.DataContext = model;
             openedDirectory = null!;
             _soursDirectory = null!;
-            homeDirectory = null!;
             tokens = new List<CancelTaskToken>();
 
-            GetDefaultPath();
-            UpdateItems();
+            GetFileData();
+        }
+
+        private void SaveFileData(string currentDirectory)
+        {
+            using (FileStream fs = new FileStream(fName, FileMode.Append, FileAccess.Write)) {
+                byte[] array = Encoding.UTF8.GetBytes(currentDirectory + Environment.NewLine);
+                fs.Write(array, 0, array.Length);
+            }
+        }
+
+        private void GetFileData()
+        {
+            using (StreamReader fs = new StreamReader(new FileStream(fName, FileMode.OpenOrCreate, FileAccess.Read)))
+            {
+                HashSet<string> fileData = fs.ReadToEnd().Split('\n').ToHashSet();
+                fileData.Remove("");
+
+                if (fileData.Count == 0)
+                {
+                    GetDefaultPath();
+                    UpdateItems();
+                }
+                else
+                {
+                    List<string> list = fileData.ToList();
+                    model.Path = "Історія відкритих папок";
+                    List<DItem> items = new List<DItem>();
+
+                    while (list.Count > 10)
+                    {
+                        list.RemoveAt(0);
+                    }
+
+                    foreach (var item in list)
+                    {
+                        DDirectory dItem = new DDirectory(System.IO.Path.GetFileName(item), item.Trim(), "Assets/folder.png");
+                        items.Add(dItem);
+                    }
+                    ItemsListBox.ItemsSource = items;
+                    UpdateTotalItemsSize();
+                    UpdateTotalItemsCount();
+                }
+            }
         }
 
         private void GetDefaultPath()
         {
-            //string username = Environment.UserName;
-            model.Path = Directory.GetCurrentDirectory();
+            model.Path = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
             openedDirectory = model.Path;
-            homeDirectory = model.Path; ;
+
         }
 
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
@@ -116,6 +157,7 @@ namespace teamProject
                 model.forwardPathHistory.Clear();
 
                 UpdateItems();
+                SaveFileData(openedDirectory);
             }
             catch (UnauthorizedAccessException)
             {
@@ -123,7 +165,7 @@ namespace teamProject
             }
             catch (DirectoryNotFoundException)
             {
-                MessageBox.Show("Не можливо знайти шлях до папки.", "Невірне розташування", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Не можливо знайти шлях до папки.", "Невірне розташування", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             catch (Exception ex)
             {
@@ -146,6 +188,7 @@ namespace teamProject
 
         private void UpdateDrives()
         {
+            ItemsListBox.ItemsSource = new List<DItem>();
             model.ClearItems();
 
             DriveInfo[] drives = DriveInfo.GetDrives();
@@ -156,11 +199,12 @@ namespace teamProject
 
                 model.AddItem(dDrive);
             }
-
+            ItemsListBox.ItemsSource = model.Items;
             model.Path = "Диски";
 
             UpdateTotalItemsCount();
             UpdateTotalItemsSize();
+            
         }
 
         private void UpdateMyFolders()
@@ -202,9 +246,9 @@ namespace teamProject
                 UpdateTotalItemsSize();
                 UpdateButtonState();
             }
-            catch
+            catch(Exception ex)
             {
-                MessageBox.Show("Неможливо отримати доступ до папки", "Помилка відкриття папки", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Неможливо отримати доступ до папки {ex}", "Помилка відкриття папки", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -837,7 +881,7 @@ namespace teamProject
 
         private void Home_btn(object sender, RoutedEventArgs e)
         {
-            model.Path = homeDirectory;
+            model.Path = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
             Directory.SetCurrentDirectory(model.Path);
             openedDirectory = Directory.GetCurrentDirectory();
 
@@ -1528,10 +1572,27 @@ namespace teamProject
                 Name = $"Локальний диск ({driveInfo.Name.Substring(0, driveInfo.Name.Length - 1)})";
                 IconPath = "Assets/hdd.png";
             }
+            //==================================================================================================================================================
+            else if (driveInfo.DriveType == DriveType.Removable){
+                Name = $"USB пристрій ({driveInfo.Name.Substring(0, driveInfo.Name.Length - 1)})";
+                IconPath = "Assets/hdd.png"; // ЮРА ЗРОБИ ІКОНКУ ЮСБ ПРИСТРОЇВ І ЗБЕРЕЖИ В ПЕEСДE ФОРМАТІ :D
+            }
+            else if (driveInfo.DriveType == DriveType.CDRom)
+            {
+                Name = $"DVD привід ({driveInfo.Name.Substring(0, driveInfo.Name.Length - 1)})";
+                IconPath = "Assets/hdd.png"; // ЮРА ЗРОБИ ІКОНКУ ДВД ПРИСТРОЇВ І ЗБЕРЕЖИ В ПЕEСДE ФОРМАТІ :D
+            }
+            else if (driveInfo.DriveType == DriveType.Network)
+            {
+                Name = $"Мережевий диск ({driveInfo.Name.Substring(0, driveInfo.Name.Length - 1)})";
+                IconPath = "Assets/hdd.png"; // ЮРА ЗРОБИ ІКОНКУ МЕРЕЖЕВИХ ПРИСТРОЇВ І ЗБЕРЕЖИ В ПЕEСДE ФОРМАТІ :D
+            }
             else
             {
-                Name = $"Невідомий диск ({driveInfo.Name.Substring(0, driveInfo.Name.Length - 1)})";
+                Name = $"Невідомий пристрій ({driveInfo.Name.Substring(0, driveInfo.Name.Length - 1)})";
+                IconPath = "Assets/hdd.png"; // ЮРА ЗРОБИ ІКОНКУ НЕВІДОМОГО ПРИСТРОЮ І ЗБЕРЕЖИ В ПЕEСДE ФОРМАТІ :D
             }
+            //==================================================================================================================================================
         }
     }
 
