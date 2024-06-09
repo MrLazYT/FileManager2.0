@@ -135,32 +135,13 @@ namespace teamProject
         {
             if (model.Path == "Диски")
             {
-                UpdateDrives();
+                DriveUpdater.Update(model);
             }
             else
             {
                 UpdateMyFolders();
                 UpdateDirectory();
             }
-        }
-
-        private void UpdateDrives()
-        {
-            model.ClearItems();
-
-            DriveInfo[] drives = DriveInfo.GetDrives();
-
-            foreach (DriveInfo drive in drives)
-            {
-                DDrive dDrive = new DDrive(drive);
-
-                model.AddItem(dDrive);
-            }
-
-            model.Path = "Диски";
-
-            UpdateTotalItemsCount();
-            UpdateTotalItemsSize();
         }
 
         private void UpdateMyFolders()
@@ -426,7 +407,7 @@ namespace teamProject
                 }
             }
 
-            model.UpdateTotalSize(totalSize);
+            model.UpdateTotalSize();
         }
 
         private void UpdateDirectorySize(long size)
@@ -1327,6 +1308,11 @@ namespace teamProject
             items.Clear();
         }
 
+        public void UpdateTotalItemsCount()
+        {
+            ItemCount = Items.Count();
+        }
+
         public void PushBackPath(string path)
         {
             backPathHistory.Push(path);
@@ -1357,10 +1343,32 @@ namespace teamProject
             return forwardPathHistory.Count > 0;
         }
 
-        public void UpdateTotalSize(long size)
+        public void UpdateTotalSize()
         {
-            TotalSize = size;
-            TotalSizeString = UpdateSize(size);
+            long totalSize = 0;
+
+            foreach (DItem dItem in Items)
+            {
+                if (dItem is DFile)
+                {
+                    totalSize += dItem.Size;
+                }
+                else if (dItem is DDrive)
+                {
+                    DDrive dDrive = (DDrive)dItem;
+
+                    totalSize += dDrive.TotalSpace - dDrive.FreeSpace;
+                }
+            }
+
+            TotalSize = totalSize;
+            TotalSizeString = UpdateSize(totalSize);
+        }
+
+        public void UpdateTotalSize(long totalSize)
+        {
+            TotalSize = totalSize;
+            TotalSizeString = UpdateSize(totalSize);
         }
 
         public string UpdateSize(long size)
