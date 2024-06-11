@@ -1361,33 +1361,45 @@ namespace teamProject
 
         private void CreateArchive_Click(object sender, RoutedEventArgs e)
         {
+            List<DItem> selectedItems = new List<DItem>(ItemsListBox.SelectedItems.Cast<DItem>());
             string fname2 = ((DItem)ItemsListBox.SelectedItem).Path;
             string zipPath = Path.ChangeExtension(fname2, ".zip");
 
-            using (FileStream zipFile = new FileStream(zipPath, FileMode.Create))
-            {
-                using (ZipArchive archive = new ZipArchive(zipFile, ZipArchiveMode.Create))
-                {
-                    string fileName = Path.GetFileName(fname2);
-                    ZipArchiveEntry zipArchive = archive.CreateEntryFromFile(fname2, GetUniqueFileName(fileName));
+            using (FileStream zipFile = new FileStream(zipPath, FileMode.Create)){
+                using (ZipArchive archive = new ZipArchive(zipFile, ZipArchiveMode.Create)){
+                    foreach (DItem item in selectedItems)
+                    {
+                        string fileName = Path.GetFileName(item.Path);
+                        ZipArchiveEntry zipArchive = archive.CreateEntryFromFile(item.Path, GetUniqueFileName(fileName));
+                    }
                 }
-            }
 
-            UpdateItems();
+                UpdateItems();
+            }
         }
 
         private void UnZip_Click(object sender, RoutedEventArgs e)
         {
-            string fname2 = ((DItem)ItemsListBox.SelectedItem).Path;
-            string zipPath = Path.ChangeExtension(fname2, ".zip");
+            List<DItem> selectedItems = new List<DItem>(ItemsListBox.SelectedItems.Cast<DItem>());
 
-            using (FileStream zipFile = new FileStream(zipPath, FileMode.Open))
+            foreach (DItem item in selectedItems)
             {
-                using (ZipArchive archive = new ZipArchive(zipFile, ZipArchiveMode.Read))
-                {
-                    string fileName = Path.GetFileName(GetUniqueFileName(fname2));
+                string zipPath = Path.ChangeExtension(item.Path, ".zip");
 
-                    archive.ExtractToDirectory(Directory.GetCurrentDirectory());
+                using (FileStream zipFile = new FileStream(zipPath, FileMode.Open))
+                {
+                    using (ZipArchive archive = new ZipArchive(zipFile, ZipArchiveMode.Read))
+                    {
+                        string directoryPath = Path.Combine(Directory.GetCurrentDirectory(), Path.GetFileNameWithoutExtension(item.Path));
+
+                        foreach (ZipArchiveEntry entry in archive.Entries)
+                        {
+                            string entryFullName = Path.Combine(directoryPath, entry.FullName);
+
+                            Directory.CreateDirectory(Path.GetDirectoryName(entryFullName)!);
+                            entry.ExtractToFile(entryFullName, overwrite: true);
+                        }
+                    }
                 }
             }
 
@@ -1396,27 +1408,34 @@ namespace teamProject
 
         private void UnZipTo_Click(object sender, RoutedEventArgs e)
         {
-            string fname2 = ((DItem)ItemsListBox.SelectedItem).Path;
-            string zipPath = Path.ChangeExtension(fname2, ".zip");
+            List<DItem> selectedItems = new List<DItem>(ItemsListBox.SelectedItems.Cast<DItem>());
 
-            using (FileStream zipFile = new FileStream(zipPath, FileMode.Open))
+            foreach (DItem selectedItem in selectedItems)
             {
-                using (ZipArchive archive = new ZipArchive(zipFile, ZipArchiveMode.Read))
+                string zipPath = Path.ChangeExtension(selectedItem.Path, ".zip");
+
+                using (FileStream zipFile = new FileStream(zipPath, FileMode.Open))
                 {
-                    string fileName = Path.GetFileName(GetUniqueFileName(fname2));
-
-                    OpenFolderDialog openFolderDialog = new OpenFolderDialog();
-
-                    if(openFolderDialog.ShowDialog() == true)
+                    using (ZipArchive archive = new ZipArchive(zipFile, ZipArchiveMode.Read))
                     {
-                        archive.ExtractToDirectory(openFolderDialog.FolderName);
+                        OpenFolderDialog openFolderDialog = new OpenFolderDialog();
+                        if (openFolderDialog.ShowDialog() == true)
+                        {
+                            foreach (ZipArchiveEntry entry in archive.Entries)
+                            {
+                                string destinationPath = Path.Combine(openFolderDialog.FolderName, entry.FullName);
+                                Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
+                                entry.ExtractToFile(destinationPath, overwrite: true);
+                            }
+                            MessageBox.Show($"Успішно розархівовано! {openFolderDialog.FolderName}", "Розархівовано", MessageBoxButton.OK); // Додати картинку в форматі ПЕЕСДЕ
+                        }
                     }
-                    MessageBox.Show($"Успішно розархівовано! {openFolderDialog.FolderName}", "Розархівовано", MessageBoxButton.OK); // Додати картинку в форматі ПЕЕСДЕ
                 }
             }
 
             UpdateItems();
         }
+
     }
 
     [AddINotifyPropertyChangedInterface]

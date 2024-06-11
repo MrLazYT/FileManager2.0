@@ -163,7 +163,7 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
 
-                    <ListBox Name="ItemsListBox" ItemsSource="{Binding Items}" d:ItemsSource="{d:SampleData ItemCount=5}" Margin="0,58,10,25" HorizontalAlignment="Right" Width="596" Background="#23283B" Foreground="#d4d4d4" BorderBrush="#23283B">
+                    <ListBox Name="ItemsListBox" ItemsSource="{Binding Items}" d:ItemsSource="{d:SampleData ItemCount=5}" Margin="0,58,10,25" HorizontalAlignment="Right" Width="596" Background="#23283B" Foreground="#d4d4d4" BorderBrush="#23283B" SelectionMode="Extended">
                         <ListBox.ContextMenu>
                             <ContextMenu Background="#39496A" BorderBrush="#39496A" Foreground="#d4d4d4">
                                 
