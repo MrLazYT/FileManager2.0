@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -1299,6 +1300,122 @@ namespace teamProject
             }
 
             return image;
+        }
+
+        private void OpenWithNotepad_Click(object sender, RoutedEventArgs e)
+        {
+            Process process = new Process();
+            string fname = ((DItem)ItemsListBox.SelectedItem).Path;
+
+            ProcessStartInfo startInfo = new ProcessStartInfo{
+                UseShellExecute = true,
+                FileName = "Notepad.exe",
+                Arguments = $"\"{fname}\""
+            };
+
+            process.StartInfo = startInfo;
+            process.Start();
+        }
+
+        private void OpenWithPaint_Click(object sender, RoutedEventArgs e)
+        {
+            Process process = new Process();
+            string fname = ((DItem)ItemsListBox.SelectedItem).Path;
+
+            ProcessStartInfo startInfo = new ProcessStartInfo
+            {
+                UseShellExecute = true,
+                FileName = "mspaint.exe",
+                Arguments = $"\"{fname}\""
+            };
+
+            process.StartInfo = startInfo;
+            process.Start();
+        }
+        
+        private void OpenWithEdge_Click(object sender, RoutedEventArgs e)
+        {
+            Process process = new Process();
+            string fname = ((DItem)ItemsListBox.SelectedItem).Path;
+
+            ProcessStartInfo startInfo = new ProcessStartInfo
+            {
+                UseShellExecute = true,
+                FileName = "msedge.exe",
+                Arguments = $"\"{fname}\""
+            };
+
+            process.StartInfo = startInfo;
+            process.Start();
+        }
+
+        private void OpenOtherProgramm_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+
+            if (openFileDialog.ShowDialog() == true) {
+                string fname = ((DItem)ItemsListBox.SelectedItem).Path;
+                Process.Start(openFileDialog.FileName, $"\"{fname}\"");
+            }
+        }
+
+        private void CreateArchive_Click(object sender, RoutedEventArgs e)
+        {
+            string fname2 = ((DItem)ItemsListBox.SelectedItem).Path;
+            string zipPath = Path.ChangeExtension(fname2, ".zip");
+
+            using (FileStream zipFile = new FileStream(zipPath, FileMode.Create))
+            {
+                using (ZipArchive archive = new ZipArchive(zipFile, ZipArchiveMode.Create))
+                {
+                    string fileName = Path.GetFileName(fname2);
+                    ZipArchiveEntry zipArchive = archive.CreateEntryFromFile(fname2, GetUniqueFileName(fileName));
+                }
+            }
+
+            UpdateItems();
+        }
+
+        private void UnZip_Click(object sender, RoutedEventArgs e)
+        {
+            string fname2 = ((DItem)ItemsListBox.SelectedItem).Path;
+            string zipPath = Path.ChangeExtension(fname2, ".zip");
+
+            using (FileStream zipFile = new FileStream(zipPath, FileMode.Open))
+            {
+                using (ZipArchive archive = new ZipArchive(zipFile, ZipArchiveMode.Read))
+                {
+                    string fileName = Path.GetFileName(GetUniqueFileName(fname2));
+
+                    archive.ExtractToDirectory(Directory.GetCurrentDirectory());
+                }
+            }
+
+            UpdateItems();
+        }
+
+        private void UnZipTo_Click(object sender, RoutedEventArgs e)
+        {
+            string fname2 = ((DItem)ItemsListBox.SelectedItem).Path;
+            string zipPath = Path.ChangeExtension(fname2, ".zip");
+
+            using (FileStream zipFile = new FileStream(zipPath, FileMode.Open))
+            {
+                using (ZipArchive archive = new ZipArchive(zipFile, ZipArchiveMode.Read))
+                {
+                    string fileName = Path.GetFileName(GetUniqueFileName(fname2));
+
+                    OpenFolderDialog openFolderDialog = new OpenFolderDialog();
+
+                    if(openFolderDialog.ShowDialog() == true)
+                    {
+                        archive.ExtractToDirectory(openFolderDialog.FolderName);
+                    }
+                    MessageBox.Show($"Успішно розархівовано! {openFolderDialog.FolderName}", "Розархівовано", MessageBoxButton.OK); // Додати картинку в форматі ПЕЕСДЕ
+                }
+            }
+
+            UpdateItems();
         }
     }
 
