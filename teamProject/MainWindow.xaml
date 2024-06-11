@@ -166,6 +166,48 @@
                     <ListBox Name="ItemsListBox" ItemsSource="{Binding Items}" d:ItemsSource="{d:SampleData ItemCount=5}" Margin="0,58,10,25" HorizontalAlignment="Right" Width="596" Background="#23283B" Foreground="#d4d4d4" BorderBrush="#23283B">
                         <ListBox.ContextMenu>
                             <ContextMenu Background="#39496A" BorderBrush="#39496A" Foreground="#d4d4d4">
+                                
+                                <MenuItem Background="#39496A" BorderBrush="#39496A">
+                                    <MenuItem.Header>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image Source="Assets/copy.png" Width="16" Height="16" Margin="0,0,5,0"/>
+                                            <TextBlock Text="Відкрити за допомогою"/>
+                                        </StackPanel>
+                                    </MenuItem.Header>
+                                    <MenuItem x:Name="openWithNotepadItem" Click="OpenWithNotepad_Click" Background="#39496A" BorderBrush="#39496A">
+                                        <MenuItem.Header>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Image Source="Assets/copy.png" Width="16" Height="16" Margin="0,0,5,0"/>
+                                                <TextBlock Text="Блокноту"/>
+                                            </StackPanel>
+                                        </MenuItem.Header>
+                                    </MenuItem>
+                                    <MenuItem x:Name="openWithPaintItem" Click="OpenWithPaint_Click" Background="#39496A" BorderBrush="#39496A">
+                                        <MenuItem.Header>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Image Source="Assets/copy.png" Width="16" Height="16" Margin="0,0,5,0"/>
+                                                <TextBlock Text="Paint"/>
+                                            </StackPanel>
+                                        </MenuItem.Header>
+                                    </MenuItem>
+                                    <MenuItem x:Name="openWithEdgeItem" Click="OpenWithEdge_Click" Background="#39496A" BorderBrush="#39496A">
+                                        <MenuItem.Header>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Image Source="Assets/copy.png" Width="16" Height="16" Margin="0,0,5,0"/>
+                                                <TextBlock Text="Edge"/>
+                                            </StackPanel>
+                                        </MenuItem.Header>
+                                    </MenuItem>
+                                    <MenuItem x:Name="openOtherProgrammItem" Click="OpenOtherProgramm_Click" Background="#39496A" BorderBrush="#39496A">
+                                        <MenuItem.Header>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Image Source="Assets/copy.png" Width="16" Height="16" Margin="0,0,5,0"/>
+                                                <TextBlock Text="Відкрити сторонньою програмою"/>
+                                            </StackPanel>
+                                        </MenuItem.Header>
+                                    </MenuItem>
+                                </MenuItem>
+
                                 <MenuItem x:Name="createItem" Click="CreateFile_Click" Background="#39496A" BorderBrush="#39496A">
                                     <MenuItem.Header>
                                         <StackPanel Orientation="Horizontal">
@@ -191,6 +233,39 @@
                                             <TextBlock Text="Вставити"/>
                                         </StackPanel>
                                     </MenuItem.Header>
+                                </MenuItem>
+
+                                <MenuItem Background="#39496A" BorderBrush="#39496A">
+                                    <MenuItem.Header>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image Source="Assets/create.png" Width="16" Height="16" Margin="0,0,5,0"/>
+                                            <TextBlock Text="Архівувати файл"/>
+                                        </StackPanel>
+                                    </MenuItem.Header>
+                                    <MenuItem x:Name="createArchiveItem" Click="CreateArchive_Click" Background="#39496A" BorderBrush="#39496A">
+                                        <MenuItem.Header>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Image Source="Assets/copy.png" Width="16" Height="16" Margin="0,0,5,0"/>
+                                                <TextBlock Text="Архівувати"/>
+                                            </StackPanel>
+                                        </MenuItem.Header>
+                                    </MenuItem>
+                                    <MenuItem x:Name="unzipItem" Click="UnZip_Click" Background="#39496A" BorderBrush="#39496A">
+                                        <MenuItem.Header>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Image Source="Assets/copy.png" Width="16" Height="16" Margin="0,0,5,0"/>
+                                                <TextBlock Text="Розархівувати"/>
+                                            </StackPanel>
+                                        </MenuItem.Header>
+                                    </MenuItem>
+                                    <MenuItem x:Name="unzipToItem" Click="UnZipTo_Click" Background="#39496A" BorderBrush="#39496A">
+                                        <MenuItem.Header>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Image Source="Assets/copy.png" Width="16" Height="16" Margin="0,0,5,0"/>
+                                                <TextBlock Text="Розархівувати"/>
+                                            </StackPanel>
+                                        </MenuItem.Header>
+                                    </MenuItem>
                                 </MenuItem>
 
                                 <MenuItem x:Name="updateItem" Click="Update_Click" Background="#39496A" BorderBrush="#39496A">
