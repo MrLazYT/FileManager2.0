@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace teamProject
+namespace teamProject.Models
 {
     public class CancelTaskToken
     {

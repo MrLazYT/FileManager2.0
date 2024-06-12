@@ -1,6 +1,6 @@
 ﻿using System.Windows;
 
-namespace teamProject
+namespace teamProject.Models
 {
     public class DateUK
     {
